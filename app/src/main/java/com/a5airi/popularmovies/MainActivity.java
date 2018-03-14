@@ -2,7 +2,6 @@ package com.a5airi.popularmovies;
 
 import android.content.Intent;
 import android.os.AsyncTask;
-import android.os.Parcelable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.GridLayoutManager;
@@ -21,9 +20,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements viewAdapter.movie_onclickHandler {
@@ -36,7 +33,8 @@ public class MainActivity extends AppCompatActivity implements viewAdapter.movie
     viewAdapter adapter;
     List<JsonUtils> List_data = new ArrayList<>();
     Listed_data listed_data ;
-    String url = "https://api.themoviedb.org/3/movie/popular?api_key=af0c4d656b90649d188f51b053cd24b4";
+    String API_KEY;
+    String url = "https://api.themoviedb.org/3/movie/popular?api_key=" + API_KEY;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -149,11 +147,11 @@ public class MainActivity extends AppCompatActivity implements viewAdapter.movie
 
         switch (item.getItemId()){
             case R.id.top_rated:
-                url = "https://api.themoviedb.org/3/movie/top_rated?api_key=af0c4d656b90649d188f51b053cd24b4";
+                url = "https://api.themoviedb.org/3/movie/top_rated?api_key=" + API_KEY;
                 load_task();
                 break;
             case R.id.popular:
-                url = "https://api.themoviedb.org/3/movie/popular?api_key=af0c4d656b90649d188f51b053cd24b4";
+                url = "https://api.themoviedb.org/3/movie/popular?api_key=" + API_KEY;
                 load_task();
                 break;
         }

@@ -3,14 +3,11 @@ package com.a5airi.popularmovies;
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.a5airi.popularmovies.model.JsonUtils;
 import com.squareup.picasso.Picasso;
-
-import java.util.List;
 
 public class DetailsActivity extends AppCompatActivity {
 

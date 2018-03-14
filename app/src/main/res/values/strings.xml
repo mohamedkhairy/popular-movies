@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">popular movies</string>
+    <string name="title">Title</string>
+    <string name="UserRating">User Rating</string>
+    <string name="ReleaseDate">Release Date</string>
+    <string name="Summary">Summary</string>
+    <string name="TopRated">Top Rated</string>
+    <string name="popular">Pupular</string>
 </resources>

@@ -1,7 +1,6 @@
 package com.a5airi.popularmovies.model;
 
 import java.io.Serializable;
-import java.util.List;
 
 /**
  * Created by khairy on 3/10/2018.

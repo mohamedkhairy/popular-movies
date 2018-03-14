@@ -42,7 +42,7 @@
            android:layout_below="@id/linear"
            android:background="@color/ccccc"
            android:padding="5dp"
-           android:text="Title"
+           android:text="@string/title"
            android:textColor="@android:color/background_light"
            android:textSize="15sp" />
 
@@ -62,7 +62,7 @@
            android:layout_below="@id/title_view"
            android:background="@color/ccccc"
            android:padding="5dp"
-           android:text="user rating"
+           android:text="@string/UserRating"
            android:textColor="@android:color/background_light"
            android:textSize="15sp" />
 
@@ -82,7 +82,7 @@
            android:layout_below="@id/user_rating_view"
            android:background="@color/ccccc"
            android:padding="5dp"
-           android:text="release date"
+           android:text="@string/ReleaseDate"
            android:textColor="@android:color/background_light"
            android:textSize="15sp" />
 
@@ -102,7 +102,7 @@
            android:layout_below="@id/release_date_view"
            android:background="@color/ccccc"
            android:padding="5dp"
-           android:text="Summary"
+           android:text="@string/Summary"
            android:textColor="@android:color/background_light"
            android:textSize="15sp" />
 
