@@ -67,10 +67,9 @@ public class MainActivity extends AppCompatActivity implements viewAdapter.movie
 
     @Override
     public void movie_handler(int position) {
-
+         JsonUtils jsonUtils =  listed_data.getData_json().get(position);
         Intent intent = new Intent(this , DetailsActivity.class);
-        intent.putExtra("data" , listed_data);
-        intent.putExtra("position" , position);
+        intent.putExtra(DetailsActivity.MOVIE_EXTRA ,  jsonUtils);
         startActivity(intent);
     }
 

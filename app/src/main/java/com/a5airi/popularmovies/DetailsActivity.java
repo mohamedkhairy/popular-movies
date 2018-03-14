@@ -3,6 +3,7 @@ package com.a5airi.popularmovies;
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -13,11 +14,12 @@ import java.util.List;
 
 public class DetailsActivity extends AppCompatActivity {
 
+
+    public static final String MOVIE_EXTRA = "movieDetails";
     ImageView cover_imageview , intro_imageview;
     TextView title , release_date , summary , user_rating ;
-    List<JsonUtils> list_data ;
-    JsonUtils jsondata ;
-    Listed_data data;
+    JsonUtils jsondata;
+
 
 
     @Override
@@ -33,21 +35,20 @@ public class DetailsActivity extends AppCompatActivity {
         user_rating = (TextView) findViewById(R.id.user_rating_view);
 
         Intent i = getIntent();
-        int position = i.getIntExtra("position" , 0);
-        data = (Listed_data) i.getSerializableExtra("data");
+        jsondata  = (JsonUtils) i.getSerializableExtra(MOVIE_EXTRA);
+        setDetailesView();
 
-
-        setDetailesView(position , data);
     }
 
-    private void setDetailesView(int position , Listed_data data){
+    private void setDetailesView(){
 
-        jsondata = data.getData_json().get(position);
+
 
 
         Picasso.with(this)
                 .load(jsondata.getCover_image())
                 .into(cover_imageview);
+
         Picasso.with(this)
                 .load(jsondata.getIntro_image())
                 .into(intro_imageview);
