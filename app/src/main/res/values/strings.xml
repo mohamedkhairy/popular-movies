@@ -5,5 +5,13 @@
     <string name="ReleaseDate">Release Date</string>
     <string name="Summary">Summary</string>
     <string name="TopRated">Top Rated</string>
-    <string name="popular">Pupular</string>
+    <string name="popular">Popular</string>
+    <string name="settings">Settings</string>
+    <string name="Movies_sort">Movies Sort</string>
+    <string name="sort_show">Top Rated , Popular , Favorites</string>
+    <string-array name="Sort">
+        <item>Top Rated</item>
+        <item>Popular</item>
+        <item>Favorites</item>
+    </string-array>
 </resources>
