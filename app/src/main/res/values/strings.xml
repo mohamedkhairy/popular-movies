@@ -6,6 +6,8 @@
     <string name="Summary">Summary</string>
     <string name="TopRated">Top Rated</string>
     <string name="popular">Popular</string>
+    <string name="trailer">Trailers</string>
+    <string name="reviews">REVIEWS</string>
     <string name="settings">Settings</string>
     <string name="Movies_sort">Movies Sort</string>
     <string name="sort_show">Top Rated , Popular , Favorites</string>

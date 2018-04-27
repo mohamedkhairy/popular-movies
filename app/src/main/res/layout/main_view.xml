@@ -18,7 +18,7 @@
         android:layout_height="wrap_content"
         android:padding="8dp"
         android:textSize="8pt"
-        android:textColor="#ffffff"
+        android:textColor="@color/colorPrimaryDark"
         android:layout_below="@+id/movie_imageView"
         />
 </RelativeLayout>
