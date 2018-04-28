@@ -9,23 +9,7 @@
         android:icon="@android:drawable/ic_menu_sort_by_size"
         android:orderInCategory="101"
         app:showAsAction="always"
-        android:title="">
-        <menu>
-
-            <item
-                android:id="@+id/top_rated"
-                android:title="@string/TopRated"
-                app:showAsAction="always|withText" />
-            <item
-                android:id="@+id/popular"
-                android:title="@string/popular"
-                app:showAsAction="always|withText"/>
-            <item
-                android:id="@+id/settings"
-                android:title="@string/settings"
-                app:showAsAction="always|withText"/>
-
-        </menu>
+        android:title="@string/settings">
     </item>
 
 </menu>

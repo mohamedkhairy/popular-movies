@@ -1,6 +1,8 @@
 package com.a5airi.popularmovies.Adapter;
 
 import android.content.Context;
+import android.database.Cursor;
+import android.graphics.drawable.GradientDrawable;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -12,6 +14,7 @@ import android.widget.TextView;
 import com.a5airi.popularmovies.Listed_data;
 import com.a5airi.popularmovies.R;
 import com.a5airi.popularmovies.model.JsonUtils;
+import com.a5airi.popularmovies.moviesDB.MoviesContract;
 import com.squareup.picasso.Picasso;
 
 
@@ -22,18 +25,19 @@ import com.squareup.picasso.Picasso;
 public class viewAdapter extends RecyclerView.Adapter<viewAdapter.viewHolder> {
 
 
-
+    private Cursor cursor;
     private Context context;
     JsonUtils setDetails;
     private Listed_data listed_data;
+    private Boolean isFavorite;
 
 
 
-
-    public viewAdapter(Context context , movie_onclickHandler mHandler , Listed_data data) {
+    public viewAdapter(Context context , movie_onclickHandler mHandler , Listed_data data , Boolean Favorite) {
         this.context = context;
         this.listed_data = data;
         movieClickHandler = mHandler;
+        this.isFavorite = Favorite;
     }
 
     final private movie_onclickHandler movieClickHandler ;
@@ -57,21 +61,60 @@ public class viewAdapter extends RecyclerView.Adapter<viewAdapter.viewHolder> {
     @Override
     public void onBindViewHolder(viewHolder holder, int position) {
 
+        if (isFavorite){
+            int idIndex = cursor.getColumnIndex(MoviesContract.MoviesDataBase.COLUMN_MOVIE_ID);
 
-        setDetails = listed_data.getData_json().get(position);
+            int PhotoIndex = cursor.getColumnIndex(MoviesContract.MoviesDataBase.COLUMN_PHOTO_PATH);
+            int TitleIndex = cursor.getColumnIndex(MoviesContract.MoviesDataBase.COLUMN_TITLE);
 
-        Picasso.with(context)
-                .load(setDetails.getCover_image())
-                .into(holder.movie_img);
-        holder.movie_title.setText(setDetails.getTitle());
+            cursor.moveToPosition(position);
 
+            String id = cursor.getString(idIndex);
+
+            String photopath = cursor.getString(PhotoIndex);
+            String title = cursor.getString(TitleIndex);
+
+            Picasso.with(context)
+                    .load(photopath)
+                    .into(holder.movie_img);
+            holder.movie_title.setText(title);
+
+            holder.itemView.setTag(id);
+
+        }else {
+            setDetails = listed_data.getData_json().get(position);
+
+            Picasso.with(context)
+                    .load(setDetails.getCover_image())
+                    .into(holder.movie_img);
+            holder.movie_title.setText(setDetails.getTitle());
+        }
     }
 
 
 
     @Override
     public int getItemCount() {
+        if (isFavorite){
+            if(cursor == null){
+                return 0;
+            }
+            return cursor.getCount();
+        }
         return listed_data.getData_json().size();
+    }
+
+    public Cursor swapCursor(Cursor c) {
+        if (cursor == c) {
+            return null;
+        }
+        Cursor temp = cursor;
+        this.cursor = c;
+
+        if (c != null) {
+            this.notifyDataSetChanged();
+        }
+        return temp;
     }
 
     public  class  viewHolder extends RecyclerView.ViewHolder implements View.OnClickListener{

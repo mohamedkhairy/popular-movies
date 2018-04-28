@@ -1,7 +1,11 @@
 package com.a5airi.popularmovies;
 
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.net.ConnectivityManager;
+import android.os.AsyncTask;
 import android.preference.ListPreference;
 import android.preference.PreferenceManager;
 import android.support.v4.app.LoaderManager;
@@ -15,6 +19,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.Toast;
 
 import com.a5airi.popularmovies.Adapter.viewAdapter;
@@ -22,6 +27,7 @@ import com.a5airi.popularmovies.httpHandler.ApiFetcher;
 import com.a5airi.popularmovies.httpHandler.HttpHandler;
 import com.a5airi.popularmovies.model.FirstJson;
 import com.a5airi.popularmovies.model.JsonUtils;
+import com.a5airi.popularmovies.moviesDB.MoviesContract;
 //import com.a5airi.popularmovies.model.extractMoviesData;
 
 import org.json.JSONArray;
@@ -39,14 +45,14 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 public class MainActivity extends AppCompatActivity implements viewAdapter.movie_onclickHandler ,
-        SharedPreferences.OnSharedPreferenceChangeListener{
+        SharedPreferences.OnSharedPreferenceChangeListener {
 
 
     private String TAG ="MainActivity";
     private static final int MAIN_LOADER = 11;
 
-//    private static final int TRAILER_LOADER = 33;
-    private static final String BUNDLE_KEY = "sort";
+    private static final int ID_LOADER = 33;
+    private static final String BUNDLE_KEY = "id";
     private static final String SaveState_KEY = "callback";
     RecyclerView recyclerView;
     GridLayoutManager layoutManager;
@@ -64,6 +70,9 @@ public class MainActivity extends AppCompatActivity implements viewAdapter.movie
     private static Retrofit retrofit;
     FirstJson firstJson;
     String sort;
+    String MovieID;
+    FetchMoviesAsync moviesAsync = new FetchMoviesAsync();
+RecyclerView.ViewHolder holder = null;
 
 
 
@@ -72,10 +81,29 @@ public class MainActivity extends AppCompatActivity implements viewAdapter.movie
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        setupSharedPreferences();
-        getRetrofitmainPage(sort);
+//        getSupportLoaderManager().initLoader(MAIN_LOADER, null, this);
+
+
+        if (isNetworkConnected()){
+            setupSharedPreferences();
+            getRetrofitmainPage(sort);
+        }else{
+            noConnection();
+        }
     }
 
+
+    private boolean isNetworkConnected() {
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        return cm.getActiveNetworkInfo() != null;
+    }
+
+    public void noConnection(){
+        Toast.makeText(this , "Your Favorites \n No Internet Connection !!" , Toast.LENGTH_LONG).show();
+        PreferenceManager.getDefaultSharedPreferences(this).edit().putString("chosenSort" , "Favorites").apply();
+        setupSharedPreferences();
+    }
 
     public void getRetrofitmainPage(String moviesSort) {
 
@@ -90,7 +118,7 @@ public class MainActivity extends AppCompatActivity implements viewAdapter.movie
             public void onResponse(Call<FirstJson> call, Response<FirstJson> response) {
                 firstJson = response.body();
                 listed_data = new Listed_data(firstJson.getResults());
-                set_view();
+                set_view(false);
             }
 
             @Override
@@ -108,8 +136,8 @@ public class MainActivity extends AppCompatActivity implements viewAdapter.movie
         }else if (val.equals("Top Rated")){
             sort = "top_rated";
         }else {
-            Log.d(TAG ,"shared : 55");
-            Toast.makeText(this , val , Toast.LENGTH_LONG).show();
+            moviesAsync.execute();
+            set_view(true);
         }
         sharedPreferences.registerOnSharedPreferenceChangeListener(this);
     }
@@ -119,6 +147,23 @@ public class MainActivity extends AppCompatActivity implements viewAdapter.movie
         super.onSaveInstanceState(outState);
     }
 
+//    @Override
+//    protected void onResume() {
+//        super.onResume();
+//        Loader<Cursor> loader = getSupportLoaderManager().getLoader(MAIN_LOADER);
+//        if (loader == null){
+//            getSupportLoaderManager().initLoader(MAIN_LOADER, null, this);
+//        }else {
+//            getSupportLoaderManager().restartLoader(MAIN_LOADER , null , this);
+//        }
+//    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        moviesAsync.execute();
+
+    }
 
     @Override
     protected void onDestroy() {
@@ -127,23 +172,54 @@ public class MainActivity extends AppCompatActivity implements viewAdapter.movie
                 .unregisterOnSharedPreferenceChangeListener(this);
     }
 
-    public  void set_view (){
+    public  void set_view (Boolean favorite){
         recyclerView = (RecyclerView) findViewById(R.id.recycler_view);
         layoutManager = new GridLayoutManager(MainActivity.this , 2);
         recyclerView.setHasFixedSize(true);
         recyclerView.setLayoutManager(layoutManager);
-        adapter = new viewAdapter(MainActivity.this , this , listed_data);
+        adapter = new viewAdapter(MainActivity.this , this , listed_data , favorite);
         recyclerView.setAdapter(adapter);
+
+
+
+
     }
 
 
 
     @Override
     public void movie_handler(int position) {
-        JsonUtils jsonUtils = listed_data.getData_json().get(position);
-        Intent intent = new Intent(this , DetailsActivity.class);
-        intent.putExtra(DetailsActivity.MOVIE_EXTRA ,  jsonUtils);
-        startActivity(intent);
+        String favoriteSort =  PreferenceManager.getDefaultSharedPreferences(this).
+                            getString("chosenSort" , "Top Rated");
+        Intent intent = new Intent(this, DetailsActivity.class);
+
+
+        if (favoriteSort.equals("Favorites")){
+
+//                Bundle bundle = new Bundle();
+//                bundle.putInt(BUNDLE_KEY, position);
+//                Loader<Cursor> loader = getSupportLoaderManager().getLoader(MAIN_LOADER);
+//                if (loader == null) {
+//                    getSupportLoaderManager().initLoader(ID_LOADER, bundle, this);
+//                } else {
+//                    getSupportLoaderManager().restartLoader(ID_LOADER, bundle, this);
+//                }
+//                moviesAsync.execute();
+                Cursor cursor =moviesAsync.getCursor();
+                if (cursor == null){Log.d("xxx" , "000000000000000");}
+                cursor.move(position);
+                int Index = cursor.getColumnIndex(MoviesContract.MoviesDataBase.COLUMN_MOVIE_ID);
+                MovieID = cursor.getString(Index);
+                intent.putExtra(DetailsActivity.ID_EXTRA, MovieID);
+                startActivity(intent);
+
+
+        }else {
+            JsonUtils jsonUtils = listed_data.getData_json().get(position);
+            intent.putExtra(DetailsActivity.MOVIE_EXTRA, jsonUtils);
+            startActivity(intent);
+        }
+
     }
 
 
@@ -152,7 +228,6 @@ public class MainActivity extends AppCompatActivity implements viewAdapter.movie
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
 
        String value =  sharedPreferences.getString(key , getString(R.string.TopRated));
-
        switch(value){
             case "Top Rated" :
                 getRetrofitmainPage("top_rated");
@@ -161,192 +236,20 @@ public class MainActivity extends AppCompatActivity implements viewAdapter.movie
                 getRetrofitmainPage("popular");
                 break;
             case  "Favorites" :
-                Toast.makeText(MainActivity.this , "Favorites set" , Toast.LENGTH_LONG).show();
+//                Loader<Cursor> loader = getSupportLoaderManager().getLoader(MAIN_LOADER);
+//                if (loader == null){
+//                    getSupportLoaderManager().initLoader(MAIN_LOADER, null, this);
+//                }else {
+//                    getSupportLoaderManager().restartLoader(MAIN_LOADER , null , this);
+//                }
+                moviesAsync.execute();
+                set_view(true);
                 break;
         }
 
     }
 
 
-
-//
-//    @Override
-//    public Loader<String> onCreateLoader(final int id, final Bundle args) {
-//        Log.d(TAG , "Loder 222");
-//        return new AsyncTaskLoader<String>(this) {
-//
-//
-//            @Override
-//            protected void onStartLoading() {
-//                Log.d(TAG , "Loder 3333");
-////                List_data.clear();
-//                forceLoad();
-//                if (args != null){
-//                    url = args.getString(BUNDLE_KEY);
-//                    Log.d(TAG , "Loder 444" + url);
-//
-//                }
-////                if (json_str != null){
-////                    deliverResult(json_str);
-////                }else {
-//
-////                }
-//
-//            }
-//
-//            @Override
-//            public String loadInBackground() {
-//
-//                Log.d(TAG , "Loder 5555" + url);
-//                HttpHandler httpHandler = new HttpHandler();
-////                JsonUtils jsonUtils;
-//
-//                Log.d("zzz" ," " + url);
-//                    json_str = httpHandler.makeServiceCall(url);
-//                Log.d("zzz" ," " + json_str);
-//                    JsonData(json_str);
-//
-//
-//                Log.d("uuu" , json_str);
-//
-//                return json_str ;
-//            }
-//            @Override
-//            public void deliverResult(String data) {
-//                json_str = data;
-//                super.deliverResult(data);
-//            }
-//        };
-//    }
-//
-//    @Override
-//    public void onLoadFinished(Loader<String> loader, String data) {
-////        if (loader.getId() == MAIN_LOADER){
-////            JsonData(json_str);
-////        }else if (loader.getId() == ReviewTrailer_LOADER){
-////            ReviewsData(json_str);
-////            TrailerKey(TrailerUrl);
-////            new Listed_data(ReviewList , TrailerList);
-////        }
-//        Log.d(TAG , "!!!!!!!!!!"  + jsonUtils.getId());
-//        set_view();
-//    }
-//
-//    @Override
-//    public void onLoaderReset(Loader<String> loader) {
-//
-//    }
-//
-//    public void GetSort(int ID , Bundle bundle){
-//
-//
-//        LoaderManager loaderManager = getSupportLoaderManager();
-//        Loader<String> githubSearchLoader = loaderManager.getLoader(ID);
-//        if (githubSearchLoader == null) {
-//            loaderManager.initLoader(ID, bundle, this);
-//
-//        } else {
-//            loaderManager.restartLoader(ID, bundle, this);
-//        }
-//        Log.d(TAG ,"dd : 11");
-//    }
-//
-//    public void JsonData(String json_data) {
-//
-//        if (json_data != null){
-//            try {
-//                DataArrayList.clear();
-//                JSONObject main_jsonobject = new JSONObject(json_data);
-//                JSONArray json_movies = main_jsonobject.getJSONArray("results");
-//                Log.d(TAG , "Loder 66");
-//                for(int i = 0 ; i < json_movies.length() ; i++ ){
-//                    JSONObject movie = json_movies.getJSONObject(i);
-//                    String id = movie.getString("id");
-//                    String title = movie.getString("title");
-//                    String summary = movie.getString("overview");
-//                    String vote_average =  movie.getString("vote_average");
-//                    String background_image_original ="http://image.tmdb.org/t/p/w780"+ movie.getString("backdrop_path");
-//                    String large_cover_image ="http://image.tmdb.org/t/p/w780"+ movie.getString("poster_path");
-//                    String release_date = movie.getString("release_date");
-//
-//                    jsonUtils = new JsonUtils(title  , summary , vote_average , large_cover_image , background_image_original , release_date , id);
-//                    DataArrayList.add(jsonUtils);
-//                }
-//                listed_data = new Listed_data(DataArrayList);
-//            } catch (final JSONException e) {
-//                Log.e(TAG, "Json parsing error: " + e.getMessage());
-//
-//            }
-//        }
-//        else {
-//            Log.e(TAG, "json data is null");
-//
-//        }
-//    }
-
-//    private class GetMovies extends AsyncTask<Void , Void , Void>{
-//
-//
-//
-//        @Override
-//        protected Void doInBackground(Void... voids) {
-//            HttpHandler httpHandler = new HttpHandler();
-//            String json_str = httpHandler.makeServiceCall(url);
-//            JsonUtils jsonUtils;
-//
-//            if (json_str != null){
-//                try {
-//                    JSONObject main_jsonobject = new JSONObject(json_str);
-//                    JSONArray json_movies = main_jsonobject.getJSONArray("results");
-//
-//                    for(int i = 0 ; i < json_movies.length() ; i++ ){
-//                        JSONObject movie = json_movies.getJSONObject(i);
-//                        String title = movie.getString("title");
-//                        String summary = movie.getString("overview");
-//                        String vote_average =  movie.getString("vote_average");
-//                        String background_image_original ="http://image.tmdb.org/t/p/w780"+ movie.getString("backdrop_path");
-//                        String large_cover_image ="http://image.tmdb.org/t/p/w780"+ movie.getString("poster_path");
-//                        String release_date = movie.getString("release_date");
-//
-//                        jsonUtils = new JsonUtils(title  , summary , vote_average , large_cover_image , background_image_original , release_date);
-//                        List_data.add(jsonUtils);
-//                    }
-//                } catch (final JSONException e) {
-//                    Log.e(TAG, "Json parsing error: " + e.getMessage());
-//                    runOnUiThread(new Runnable() {
-//                        @Override
-//                        public void run() {
-//                            Toast.makeText(getApplicationContext(),
-//                                    "Json parsing error: " + e.getMessage(),
-//                                    Toast.LENGTH_LONG).show();
-//                        }
-//                    });
-//
-//                }
-//            }else {
-//                runOnUiThread(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        Toast.makeText(getApplicationContext(),
-//                                "Couldn't get json from server. Check LogCat for possible errors!",
-//                                Toast.LENGTH_LONG).show();
-//                    }
-//                });
-//            }
-//
-//
-//            return null;
-//        }
-//
-//        @Override
-//        protected void onPostExecute(Void aVoid) {
-//            super.onPostExecute(aVoid);
-//            set_view();
-//
-//        }
-//
-//
-//    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -357,21 +260,103 @@ public class MainActivity extends AppCompatActivity implements viewAdapter.movie
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-
-        switch (item.getItemId()){
-//            case R.id.top_rated:
-//                url = "https://api.themoviedb.org/3/movie/top_rated?api_key=" + API_KEY;
-//                load_task();
-//                break;
-//            case R.id.popular:
-//                url = "https://api.themoviedb.org/3/movie/popular?api_key=" + API_KEY;
-//                load_task();
-//                break;
-            case R.id.settings:
                 Intent SettingIntent = new Intent(this , SettingsActivity.class);
                 startActivity(SettingIntent);
-                break;
-        }
         return true;
+    }
+
+
+    public class FetchMoviesAsync extends AsyncTask<String,Void,Cursor> {
+//        private Context con;
+        private String id;
+
+
+
+        private Cursor cursor;
+
+
+
+        @Override
+        protected Cursor doInBackground(String... params) {
+
+            try {
+                Cursor cursor =  getContentResolver().query(MoviesContract.MoviesDataBase.CONTENT_URI,
+                        null,
+                        null,
+                        null,
+                        null);
+
+                return cursor;
+
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to asynchronously load data.");
+                e.printStackTrace();
+                return null;
+            }
+        }
+        @Override
+        public void onPostExecute(Cursor countries){
+            adapter.swapCursor(countries);
+        }
+
+        public String getId() {
+            return id;
+        }
+        public Cursor getCursor() {
+            return cursor;
+        }
+
+    }
+
+//    @Override
+//    public Loader<Cursor> onCreateLoader(int id, final Bundle args) {
+//        return new AsyncTaskLoader<Cursor>(this) {
+//            @Override
+//            protected void onStartLoading() {
+//
+//               forceLoad();
+//            }
+//
+//            @Override
+//            public Cursor loadInBackground() {
+//
+//
+//                try {
+//                    Cursor cursor =  getContentResolver().query(MoviesContract.MoviesDataBase.CONTENT_URI,
+//                            null,
+//                            null,
+//                            null,
+//                            null);
+//                    if (args != null){
+//                        int position = args.getInt(BUNDLE_KEY);
+//                        getdatafrom(cursor , position);
+//                    }
+//                    return cursor;
+//
+//                } catch (Exception e) {
+//                    Log.e(TAG, "Failed to asynchronously load data.");
+//                    e.printStackTrace();
+//                    return null;
+//                }
+//
+//            }
+//        };
+//    }
+//
+//    @Override
+//    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+//
+//        adapter.swapCursor(data);
+//    }
+//
+//    @Override
+//    public void onLoaderReset(Loader<Cursor> loader) {
+//
+//    }
+//
+    public void getdatafrom(Cursor cursor , int position){
+        cursor.move(position);
+        int Index = cursor.getColumnIndex(MoviesContract.MoviesDataBase.COLUMN_MOVIE_ID);
+        MovieID = cursor.getString(Index);
     }
 }

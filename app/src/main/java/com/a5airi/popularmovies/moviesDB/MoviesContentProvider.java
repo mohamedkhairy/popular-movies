@@ -55,7 +55,27 @@ public class MoviesContentProvider extends ContentProvider{
     @Nullable
     @Override
     public Cursor query(@NonNull Uri uri, @Nullable String[] projection, @Nullable String selection, @Nullable String[] selectionArgs, @Nullable String sortOrder) {
-        return null;
+
+        final SQLiteDatabase db = moviesDbHelper.getReadableDatabase();
+
+        int match = MoviesUriMatcher.match(uri);
+        Cursor retCursor;
+
+        switch (match) {
+            case favoriteT:
+                retCursor =  db.query(MoviesContract.MoviesDataBase.FAVORITE_TABLE,
+                        projection,
+                        selection,
+                        selectionArgs,
+                        null,
+                        null,
+                        sortOrder);
+                break;
+            default:
+                throw new UnsupportedOperationException("Unknown uri: " + uri);
+        }
+        retCursor.setNotificationUri(getContext().getContentResolver(), uri);
+        return retCursor;
     }
 
     @Nullable
@@ -100,7 +120,25 @@ public class MoviesContentProvider extends ContentProvider{
 
     @Override
     public int delete(@NonNull Uri uri, @Nullable String selection, @Nullable String[] selectionArgs) {
-        return 0;
+        final SQLiteDatabase db = moviesDbHelper.getWritableDatabase();
+
+        int match = MoviesUriMatcher.match(uri);
+        int MovieDeleted;
+        switch (match) {
+            case favoriteT_ID:
+                String id = uri.getPathSegments().get(1);
+                MovieDeleted = db.delete(MoviesContract.MoviesDataBase.FAVORITE_TABLE, "_id=?", new String[]{id});
+                break;
+            default:
+                throw new UnsupportedOperationException("Unknown uri: " + uri);
+        }
+        // Notify the resolver of a change and return the number of items deleted
+        if (MovieDeleted != 0) {
+            // A task was deleted, set notification
+            getContext().getContentResolver().notifyChange(uri, null);
+        }
+
+        return MovieDeleted;
     }
 
     @Override
