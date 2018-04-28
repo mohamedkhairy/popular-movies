@@ -343,7 +343,7 @@ public class DetailsActivity extends AppCompatActivity
                        FavoriteCheckBox.setChecked(true);
                        SelectedMovieID = TableID;
                        if (!isNetworkConnected()){
-                           Log.d("detailes", "111111111");
+                           Log.d("detailes", "noooooooooooooo");
                            setOfflineMode(data);
                        }
                     }

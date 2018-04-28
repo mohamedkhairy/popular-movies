@@ -161,8 +161,6 @@ RecyclerView.ViewHolder holder = null;
     @Override
     protected void onRestart() {
         super.onRestart();
-        moviesAsync.execute();
-
     }
 
     @Override
@@ -205,11 +203,12 @@ RecyclerView.ViewHolder holder = null;
 //                    getSupportLoaderManager().restartLoader(ID_LOADER, bundle, this);
 //                }
 //                moviesAsync.execute();
-                Cursor cursor =moviesAsync.getCursor();
-                if (cursor == null){Log.d("xxx" , "000000000000000");}
-                cursor.move(position);
-                int Index = cursor.getColumnIndex(MoviesContract.MoviesDataBase.COLUMN_MOVIE_ID);
-                MovieID = cursor.getString(Index);
+//                Cursor cursor =moviesAsync.getCursor();
+//                if (cursor == null){Log.d("xxx" , "000000000000000");}
+//                cursor.move(position);
+//                int Index = cursor.getColumnIndex(MoviesContract.MoviesDataBase.COLUMN_MOVIE_ID);
+//                MovieID = cursor.getString(Index);
+                MovieID = Integer.toString(position);
                 intent.putExtra(DetailsActivity.ID_EXTRA, MovieID);
                 startActivity(intent);
 
