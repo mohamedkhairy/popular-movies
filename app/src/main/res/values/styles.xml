@@ -9,7 +9,7 @@
         <item name="preferenceTheme">@style/PreferenceThemeOverlay</item>
     </style>
 
-    <style name="AppThemeDetails" parent="Theme.AppCompat.NoActionBar"/>
+
 
 
 </resources>

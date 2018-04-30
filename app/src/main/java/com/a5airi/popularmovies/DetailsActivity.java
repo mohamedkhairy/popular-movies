@@ -7,34 +7,24 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.net.Uri;
-import android.os.Build;
-import android.preference.PreferenceManager;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.AsyncTaskLoader;
 import android.support.v4.content.Loader;
-import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.CheckBox;
-import android.widget.CompoundButton;
-import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.widget.VideoView;
 
 import com.a5airi.popularmovies.Adapter.ReviewAdapter;
 import com.a5airi.popularmovies.Adapter.TrailerAdapter;
-import com.a5airi.popularmovies.Adapter.viewAdapter;
-import com.a5airi.popularmovies.httpHandler.HttpHandler;
+
 import com.a5airi.popularmovies.httpHandler.ReviewVideo;
 import com.a5airi.popularmovies.model.JsonUtils;
 //import com.a5airi.popularmovies.moviesDB.MoviesContract;
@@ -42,16 +32,10 @@ import com.a5airi.popularmovies.model.ReviewJson;
 import com.a5airi.popularmovies.model.ReviewResult;
 import com.a5airi.popularmovies.model.TrailerJson;
 import com.a5airi.popularmovies.model.TrailerResult;
+import com.a5airi.popularmovies.model.singleDetails.MovieDetails;
 import com.a5airi.popularmovies.moviesDB.MoviesContract;
 import com.squareup.picasso.Picasso;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.net.URI;
-import java.net.URL;
-import java.util.ArrayList;
 import java.util.List;
 
 import retrofit2.Call;
@@ -66,50 +50,30 @@ public class DetailsActivity extends AppCompatActivity
 
     public static final String MOVIE_EXTRA = "movieDetails";
     public static final String ID_EXTRA = "movieId";
+    public static final String Position_EXTRA = "position";
+    private static final int ReviewTrailer_LOADER = 22;
+    private String SelectedMovieID;
+    static String url = "https://api.themoviedb.org/3/movie/" ;
     ImageView cover_imageview , intro_imageview;
     TextView title , release_date , summary , user_rating , trailerTextView , ReviewText;
     JsonUtils jsondata;
     CheckBox FavoriteCheckBox ;
-//    MoviesContract.MoviesDataBase moviesDataBase;
-    String json_review , json_trailer;
-    String ReviewUrl , TrailerUrl;
-    private static final String BUNDLE_review = "review";
-    private static final String BUNDLE_trailer = "trailer";
-    HttpHandler httpHandler;
-    List<JsonUtils> ReviewList = new ArrayList<>();
-    List<JsonUtils> TrailerList = new ArrayList<>();
-    JsonUtils jsonUtils;
-    Bundle bundle = new Bundle();
-    private static final int ReviewTrailer_LOADER = 22;
-
     RecyclerView TrailerRecyclerView , ReviewRecycler;
     ReviewAdapter reviewAdapter;
     TrailerAdapter  trailerAdapter;
-    String API_KEY = "af0c4d656b90649d188f51b053cd24b4";
-    static String url = "https://api.themoviedb.org/3/movie/" ;
+    String API_KEY ;
     ReviewJson reviewJson;
     TrailerJson trailerJson;
     List<ReviewResult> reviewResultList;
     List<TrailerResult> trailerJsonList;
-    ReviewResult reviewResult;
-    TrailerResult trailerResult;
     ReviewVideo reviewVideo;
-    private String SelectedMovieID;
     String ExraID;
+    MovieDetails movieDetails;
+//    int position;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-//        if (Build.VERSION.SDK_INT < 16) {
-//            getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-//                    WindowManager.LayoutParams.FLAG_FULLSCREEN);
-//        }else {
-//            View decorView = getWindow().getDecorView();
-//            int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
-//            decorView.setSystemUiVisibility(uiOptions);
-//
-////            ActionBar actionBar = getSupportActionBar();
-////            actionBar.hide();
-//        }
         setContentView(R.layout.activity_details);
 
         cover_imageview = (ImageView) findViewById(R.id.cover_imageView);
@@ -129,17 +93,19 @@ public class DetailsActivity extends AppCompatActivity
                 .build();
          reviewVideo = retrofit.create(ReviewVideo.class);
 
-
-
-
         Intent i = getIntent();
         jsondata  = (JsonUtils) i.getSerializableExtra(MOVIE_EXTRA);
         ExraID = i.getStringExtra(ID_EXTRA);
-
-        if (jsondata != null) {
+//        position = i.getIntExtra(Position_EXTRA , -1);
+        if (jsondata != null && isNetworkConnected()) {
             getRetrofitReview(jsondata.getId());
             getRetrofitTrailer(jsondata.getId());
             setDetailesView();
+        }else if (ExraID != null && isNetworkConnected()){
+            getRetrofitReview(ExraID);
+            getRetrofitTrailer(ExraID);
+            getMovieDetails(ExraID);
+
         }
         Loader<Cursor> loader = getSupportLoaderManager().getLoader(ReviewTrailer_LOADER);
         if (loader == null){
@@ -147,12 +113,6 @@ public class DetailsActivity extends AppCompatActivity
         }else {
             getSupportLoaderManager().restartLoader(ReviewTrailer_LOADER , null , this);
         }
-//        Loader<Cursor> loader = getSupportLoaderManager().getLoader(ReviewTrailer_LOADER);
-//        if (loader == null){
-//            getSupportLoaderManager().initLoader(ReviewTrailer_LOADER, null, this);
-//        }else {
-//            getSupportLoaderManager().restartLoader(ReviewTrailer_LOADER , null , this);
-//        }
 
     }
 
@@ -161,16 +121,6 @@ public class DetailsActivity extends AppCompatActivity
         return cm.getActiveNetworkInfo() != null;
     }
 
-//    @Override
-//    protected void onResume() {
-//        super.onResume();
-//        Loader<Cursor> loader = getSupportLoaderManager().getLoader(ReviewTrailer_LOADER);
-//        if (loader == null){
-//            getSupportLoaderManager().initLoader(ReviewTrailer_LOADER, null, this);
-//        }else {
-//            getSupportLoaderManager().restartLoader(ReviewTrailer_LOADER , null , this);
-//        }
-//    }
 
     private void setDetailesView(){
 
@@ -183,13 +133,49 @@ public class DetailsActivity extends AppCompatActivity
                 .into(intro_imageview);
 
         title.setText(jsondata.getTitle());
-        release_date.setText("Release Date\n" + jsondata.getrelease_date());
-        user_rating.setText("User Rating\n" + jsondata.getvote_average());
+        release_date.setText(getString(R.string.ReleaseDate) + "\n" + jsondata.getrelease_date());
+        user_rating.setText(getString(R.string.UserRating) + "\n" + jsondata.getvote_average());
         summary.setText(jsondata.getSummary());
 
 
     }
+    private void setView(MovieDetails details){
 
+        Picasso.with(this)
+                .load(details.getPosterPath())
+                .into(cover_imageview);
+
+        Picasso.with(this)
+                .load(details.getBackdropPath())
+                .into(intro_imageview);
+
+        title.setText(details.getTitle());
+        release_date.setText(getString(R.string.ReleaseDate) + "\n"  + details.getReleaseDate());
+        user_rating.setText(getString(R.string.UserRating) + "\n"  + details.getVoteAverage());
+        summary.setText(details.getOverview());
+
+    }
+
+
+    public void getMovieDetails(String movieid) {
+
+        Call<MovieDetails> call = reviewVideo.getDetails(movieid , API_KEY);
+
+        call.enqueue(new Callback<MovieDetails>() {
+            @Override
+            public void onResponse(Call<MovieDetails> call, Response<MovieDetails> response) {
+                movieDetails = response.body();
+                setView(movieDetails);
+            }
+
+            @Override
+            public void onFailure(Call<MovieDetails> call, Throwable t) {
+
+            }
+        });
+
+
+    }
     public void getRetrofitReview(String movieid) {
 
         Call<ReviewJson> call = reviewVideo.getReviewData(movieid , API_KEY);
@@ -204,7 +190,7 @@ public class DetailsActivity extends AppCompatActivity
 
             @Override
             public void onFailure(Call<ReviewJson> call, Throwable t) {
-                Log.d("review" , "error");
+
             }
         });
 
@@ -226,7 +212,7 @@ public class DetailsActivity extends AppCompatActivity
 
             @Override
             public void onFailure(Call<TrailerJson> call, Throwable t) {
-                Log.d("review" , "error 222");
+
             }
         });
 
@@ -265,12 +251,7 @@ public class DetailsActivity extends AppCompatActivity
 
 
     public void onCheckclick(View view) {
-        Log.d("base" , "on check 11");
-//        FavoriteCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-//            @Override
-//            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (FavoriteCheckBox.isChecked()){
-                    Log.d("base" , "on check 22");
                     Uri selectedContent = MoviesContract.MoviesDataBase.CONTENT_URI;
                     ContentValues contentValues = new ContentValues();
                     contentValues.put(MoviesContract.MoviesDataBase.COLUMN_MOVIE_ID , jsondata.getId());
@@ -281,24 +262,21 @@ public class DetailsActivity extends AppCompatActivity
                     contentValues.put(MoviesContract.MoviesDataBase.COLUMN_RELEASE_DATE , jsondata.getrelease_date());
                     contentValues.put(MoviesContract.MoviesDataBase.COLUMN_SUMMARY , jsondata.getSummary());
                     Uri uri = getContentResolver().insert(selectedContent, contentValues);
-                    Log.d("base" , "on check 33");
-                    // Display the URI that's returned with a Toast
-                    // [Hint] Don't forget to call finish() to return to MainActivity after this insert is complete
+
                     if(uri != null) {
-                        Toast.makeText(getBaseContext(), uri.toString(), Toast.LENGTH_LONG).show();
+                        Toast.makeText(getBaseContext(), "added to your favorites", Toast.LENGTH_LONG).show();
                     }
 
-                    // Finish activity (this returns back to MainActivity)
-                    finish();
                 }else {
                     Uri uri = MoviesContract.MoviesDataBase.CONTENT_URI;
                     uri = uri.buildUpon().appendPath(SelectedMovieID).build();
                     getContentResolver().delete(uri, null, null);
+//                    Intent intent = new Intent();
+//                    intent.putExtra(MainActivity.Position_result , position);
+//                    setResult(200 , intent);
+                    Toast.makeText(getBaseContext(), "removed from favorites", Toast.LENGTH_LONG).show();
+                    finish();
                 }
-
-//            }
-//        });
-
 
     }
 
@@ -342,10 +320,6 @@ public class DetailsActivity extends AppCompatActivity
                    if (id.equals(jsondata.getId())){
                        FavoriteCheckBox.setChecked(true);
                        SelectedMovieID = TableID;
-                       if (!isNetworkConnected()){
-                           Log.d("detailes", "noooooooooooooo");
-                           setOfflineMode(data);
-                       }
                     }
 
                }else if (ExraID !=null){
@@ -353,7 +327,6 @@ public class DetailsActivity extends AppCompatActivity
                        FavoriteCheckBox.setChecked(true);
                        SelectedMovieID = TableID;
                        if (!isNetworkConnected()){
-                           Log.d("detailes", "22222222");
                            setOfflineMode(data);
                        }
                     }
@@ -370,8 +343,6 @@ public class DetailsActivity extends AppCompatActivity
     }
 
     public void setOfflineMode(Cursor cursor){
-        ReviewRecycler.setVisibility(View.INVISIBLE);
-        TrailerRecyclerView.setVisibility(View.INVISIBLE);
         trailerTextView.setVisibility(View.INVISIBLE);
         ReviewText.setVisibility(View.INVISIBLE);
 
@@ -398,8 +369,8 @@ public class DetailsActivity extends AppCompatActivity
                 .into(intro_imageview);
 
         title.setText(movieTitile);
-        release_date.setText("Release Date\n" + movieDate);
-        user_rating.setText("User Rating\n" + movieRate);
+        release_date.setText(getString(R.string.ReleaseDate) + "\n"  + movieDate);
+        user_rating.setText(getString(R.string.UserRating) + "\n"  + movieRate);
         summary.setText(moviesummary);
     }
 }

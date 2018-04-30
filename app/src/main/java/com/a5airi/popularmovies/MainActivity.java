@@ -6,11 +6,7 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.os.AsyncTask;
-import android.preference.ListPreference;
 import android.preference.PreferenceManager;
-import android.support.v4.app.LoaderManager;
-import android.support.v4.content.AsyncTaskLoader;
-import android.support.v4.content.Loader;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.GridLayoutManager;
@@ -19,24 +15,15 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.View;
 import android.widget.Toast;
 
 import com.a5airi.popularmovies.Adapter.viewAdapter;
 import com.a5airi.popularmovies.httpHandler.ApiFetcher;
-import com.a5airi.popularmovies.httpHandler.HttpHandler;
+
 import com.a5airi.popularmovies.model.FirstJson;
 import com.a5airi.popularmovies.model.JsonUtils;
 import com.a5airi.popularmovies.moviesDB.MoviesContract;
-//import com.a5airi.popularmovies.model.extractMoviesData;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Timer;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -48,41 +35,23 @@ public class MainActivity extends AppCompatActivity implements viewAdapter.movie
         SharedPreferences.OnSharedPreferenceChangeListener {
 
 
+    private static Retrofit retrofit;
     private String TAG ="MainActivity";
-    private static final int MAIN_LOADER = 11;
-
-    private static final int ID_LOADER = 33;
-    private static final String BUNDLE_KEY = "id";
-    private static final String SaveState_KEY = "callback";
     RecyclerView recyclerView;
     GridLayoutManager layoutManager;
     viewAdapter adapter;
-    List<JsonUtils> DataArrayList = new ArrayList<>();
     Listed_data listed_data ;
-    String API_KEY = "af0c4d656b90649d188f51b053cd24b4";
+    String API_KEY ;
     String url = "https://api.themoviedb.org/3/movie/";
-    private String json_str;
-    private String json_trailer;
-//    extractMoviesData extractMoviesData;
-    private Bundle bundle = new Bundle();
-    ListPreference listPreference;
-    JsonUtils jsonUtils;
-    private static Retrofit retrofit;
     FirstJson firstJson;
     String sort;
-    String MovieID;
     FetchMoviesAsync moviesAsync = new FetchMoviesAsync();
-RecyclerView.ViewHolder holder = null;
-
-
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-//        getSupportLoaderManager().initLoader(MAIN_LOADER, null, this);
-
 
         if (isNetworkConnected()){
             setupSharedPreferences();
@@ -100,7 +69,7 @@ RecyclerView.ViewHolder holder = null;
     }
 
     public void noConnection(){
-        Toast.makeText(this , "Your Favorites \n No Internet Connection !!" , Toast.LENGTH_LONG).show();
+        Toast.makeText(this , " No Internet Connection !!" , Toast.LENGTH_LONG).show();
         PreferenceManager.getDefaultSharedPreferences(this).edit().putString("chosenSort" , "Favorites").apply();
         setupSharedPreferences();
     }
@@ -113,7 +82,9 @@ RecyclerView.ViewHolder holder = null;
                 .build();
         ApiFetcher apiFetcher = retrofit.create(ApiFetcher.class);
         Call<FirstJson> call = apiFetcher.getmMovies(moviesSort , API_KEY);
+
         call.enqueue(new Callback<FirstJson>() {
+
             @Override
             public void onResponse(Call<FirstJson> call, Response<FirstJson> response) {
                 firstJson = response.body();
@@ -123,7 +94,7 @@ RecyclerView.ViewHolder holder = null;
 
             @Override
             public void onFailure(Call<FirstJson> call, Throwable t) {
-                Log.d("retro" , t.getMessage());
+
             }
         });
     }
@@ -136,32 +107,25 @@ RecyclerView.ViewHolder holder = null;
         }else if (val.equals("Top Rated")){
             sort = "top_rated";
         }else {
-            moviesAsync.execute();
-            set_view(true);
+            if (moviesAsync.getStatus().toString().equals("FINISHED")){
+                new FetchMoviesAsync().execute();
+                set_view(true);
+            }else if(moviesAsync.getStatus().toString().equals("PENDING")){
+                new FetchMoviesAsync().execute();
+                set_view(true);
+            }else if(moviesAsync.getStatus().toString().equals("RUNNING")){
+                set_view(true);
+            }else {
+                moviesAsync.execute();
+                set_view(true);
+            }
         }
         sharedPreferences.registerOnSharedPreferenceChangeListener(this);
     }
 
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-    }
 
-//    @Override
-//    protected void onResume() {
-//        super.onResume();
-//        Loader<Cursor> loader = getSupportLoaderManager().getLoader(MAIN_LOADER);
-//        if (loader == null){
-//            getSupportLoaderManager().initLoader(MAIN_LOADER, null, this);
-//        }else {
-//            getSupportLoaderManager().restartLoader(MAIN_LOADER , null , this);
-//        }
-//    }
 
-    @Override
-    protected void onRestart() {
-        super.onRestart();
-    }
+
 
     @Override
     protected void onDestroy() {
@@ -184,9 +148,22 @@ RecyclerView.ViewHolder holder = null;
     }
 
 
+//    @Override
+//    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+//        super.onActivityResult(requestCode, resultCode, data);
+//        if (requestCode == 100){
+//            if (resultCode == 200){
+//                int position = data.getIntExtra(Position_result , -1);
+//                recyclerView.removeViewAt(position);
+//                adapter.notifyItemRemoved(position);
+//                adapter.notifyItemChanged(position);
+//                recyclerView.setAdapter(adapter);
+//            }
+//        }
+//    }
 
     @Override
-    public void movie_handler(int position) {
+    public void movie_handler(int position , String MovieId) {
         String favoriteSort =  PreferenceManager.getDefaultSharedPreferences(this).
                             getString("chosenSort" , "Top Rated");
         Intent intent = new Intent(this, DetailsActivity.class);
@@ -194,23 +171,10 @@ RecyclerView.ViewHolder holder = null;
 
         if (favoriteSort.equals("Favorites")){
 
-//                Bundle bundle = new Bundle();
-//                bundle.putInt(BUNDLE_KEY, position);
-//                Loader<Cursor> loader = getSupportLoaderManager().getLoader(MAIN_LOADER);
-//                if (loader == null) {
-//                    getSupportLoaderManager().initLoader(ID_LOADER, bundle, this);
-//                } else {
-//                    getSupportLoaderManager().restartLoader(ID_LOADER, bundle, this);
-//                }
-//                moviesAsync.execute();
-//                Cursor cursor =moviesAsync.getCursor();
-//                if (cursor == null){Log.d("xxx" , "000000000000000");}
-//                cursor.move(position);
-//                int Index = cursor.getColumnIndex(MoviesContract.MoviesDataBase.COLUMN_MOVIE_ID);
-//                MovieID = cursor.getString(Index);
-                MovieID = Integer.toString(position);
-                intent.putExtra(DetailsActivity.ID_EXTRA, MovieID);
-                startActivity(intent);
+            intent.putExtra(DetailsActivity.ID_EXTRA, MovieId);
+            startActivity(intent);
+//            intent.putExtra(DetailsActivity.Position_EXTRA, position);
+//            startActivityForResult(intent , 100);
 
 
         }else {
@@ -229,20 +193,32 @@ RecyclerView.ViewHolder holder = null;
        String value =  sharedPreferences.getString(key , getString(R.string.TopRated));
        switch(value){
             case "Top Rated" :
-                getRetrofitmainPage("top_rated");
+                if (isNetworkConnected()) {
+                    getRetrofitmainPage("top_rated");
+                }else {
+                    noConnection();
+                }
                 break;
             case "Popular" :
-                getRetrofitmainPage("popular");
+                if (isNetworkConnected()) {
+                    getRetrofitmainPage("popular");
+                }else {
+                    noConnection();
+                }
                 break;
             case  "Favorites" :
-//                Loader<Cursor> loader = getSupportLoaderManager().getLoader(MAIN_LOADER);
-//                if (loader == null){
-//                    getSupportLoaderManager().initLoader(MAIN_LOADER, null, this);
-//                }else {
-//                    getSupportLoaderManager().restartLoader(MAIN_LOADER , null , this);
-//                }
-                moviesAsync.execute();
-                set_view(true);
+                if (moviesAsync.getStatus().toString().equals("FINISHED")){
+                    new FetchMoviesAsync().execute();
+                    set_view(true);
+                }else if(moviesAsync.getStatus().toString().equals("PENDING")){
+                    new FetchMoviesAsync().execute();
+                    set_view(true);
+                }else if(moviesAsync.getStatus().toString().equals("RUNNING")){
+                    set_view(true);
+                }else {
+                    moviesAsync.execute();
+                    set_view(true);
+                }
                 break;
         }
 
@@ -266,20 +242,14 @@ RecyclerView.ViewHolder holder = null;
 
 
     public class FetchMoviesAsync extends AsyncTask<String,Void,Cursor> {
-//        private Context con;
-        private String id;
-
-
-
-        private Cursor cursor;
 
 
 
         @Override
         protected Cursor doInBackground(String... params) {
-
+            Cursor cursor ;
             try {
-                Cursor cursor =  getContentResolver().query(MoviesContract.MoviesDataBase.CONTENT_URI,
+                 cursor =  getContentResolver().query(MoviesContract.MoviesDataBase.CONTENT_URI,
                         null,
                         null,
                         null,
@@ -297,65 +267,5 @@ RecyclerView.ViewHolder holder = null;
         public void onPostExecute(Cursor countries){
             adapter.swapCursor(countries);
         }
-
-        public String getId() {
-            return id;
-        }
-        public Cursor getCursor() {
-            return cursor;
-        }
-
-    }
-
-//    @Override
-//    public Loader<Cursor> onCreateLoader(int id, final Bundle args) {
-//        return new AsyncTaskLoader<Cursor>(this) {
-//            @Override
-//            protected void onStartLoading() {
-//
-//               forceLoad();
-//            }
-//
-//            @Override
-//            public Cursor loadInBackground() {
-//
-//
-//                try {
-//                    Cursor cursor =  getContentResolver().query(MoviesContract.MoviesDataBase.CONTENT_URI,
-//                            null,
-//                            null,
-//                            null,
-//                            null);
-//                    if (args != null){
-//                        int position = args.getInt(BUNDLE_KEY);
-//                        getdatafrom(cursor , position);
-//                    }
-//                    return cursor;
-//
-//                } catch (Exception e) {
-//                    Log.e(TAG, "Failed to asynchronously load data.");
-//                    e.printStackTrace();
-//                    return null;
-//                }
-//
-//            }
-//        };
-//    }
-//
-//    @Override
-//    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
-//
-//        adapter.swapCursor(data);
-//    }
-//
-//    @Override
-//    public void onLoaderReset(Loader<Cursor> loader) {
-//
-//    }
-//
-    public void getdatafrom(Cursor cursor , int position){
-        cursor.move(position);
-        int Index = cursor.getColumnIndex(MoviesContract.MoviesDataBase.COLUMN_MOVIE_ID);
-        MovieID = cursor.getString(Index);
     }
 }

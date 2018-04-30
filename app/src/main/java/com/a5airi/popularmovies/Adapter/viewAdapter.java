@@ -2,9 +2,7 @@ package com.a5airi.popularmovies.Adapter;
 
 import android.content.Context;
 import android.database.Cursor;
-import android.graphics.drawable.GradientDrawable;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,6 +14,9 @@ import com.a5airi.popularmovies.R;
 import com.a5airi.popularmovies.model.JsonUtils;
 import com.a5airi.popularmovies.moviesDB.MoviesContract;
 import com.squareup.picasso.Picasso;
+
+import java.util.ArrayList;
+import java.util.List;
 
 
 /**
@@ -30,7 +31,7 @@ public class viewAdapter extends RecyclerView.Adapter<viewAdapter.viewHolder> {
     JsonUtils setDetails;
     private Listed_data listed_data;
     private Boolean isFavorite;
-
+    private List<String> MovieId= new ArrayList<String>();
 
 
     public viewAdapter(Context context , movie_onclickHandler mHandler , Listed_data data , Boolean Favorite) {
@@ -43,7 +44,7 @@ public class viewAdapter extends RecyclerView.Adapter<viewAdapter.viewHolder> {
     final private movie_onclickHandler movieClickHandler ;
 
     public interface movie_onclickHandler{
-        void movie_handler(int position);
+        void movie_handler(int position , String MovieId);
     }
 
 
@@ -63,14 +64,13 @@ public class viewAdapter extends RecyclerView.Adapter<viewAdapter.viewHolder> {
 
         if (isFavorite){
             int idIndex = cursor.getColumnIndex(MoviesContract.MoviesDataBase.COLUMN_MOVIE_ID);
-
             int PhotoIndex = cursor.getColumnIndex(MoviesContract.MoviesDataBase.COLUMN_PHOTO_PATH);
             int TitleIndex = cursor.getColumnIndex(MoviesContract.MoviesDataBase.COLUMN_TITLE);
 
             cursor.moveToPosition(position);
 
-            String id = cursor.getString(idIndex);
 
+            MovieId.add(cursor.getString(idIndex));
             String photopath = cursor.getString(PhotoIndex);
             String title = cursor.getString(TitleIndex);
 
@@ -79,7 +79,7 @@ public class viewAdapter extends RecyclerView.Adapter<viewAdapter.viewHolder> {
                     .into(holder.movie_img);
             holder.movie_title.setText(title);
 
-            holder.itemView.setTag(id);
+
 
         }else {
             setDetails = listed_data.getData_json().get(position);
@@ -135,7 +135,11 @@ public class viewAdapter extends RecyclerView.Adapter<viewAdapter.viewHolder> {
         @Override
         public void onClick(View v) {
             int clicked_position = getAdapterPosition();
-            movieClickHandler.movie_handler(clicked_position);
+            String id = null;
+            if (!MovieId.isEmpty()) {
+                 id = MovieId.get(clicked_position);
+            }
+            movieClickHandler.movie_handler(clicked_position , id);
         }
     }
 
