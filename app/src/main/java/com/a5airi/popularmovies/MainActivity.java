@@ -6,15 +6,18 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.os.AsyncTask;
+import android.os.Parcelable;
 import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.Toast;
 
 import com.a5airi.popularmovies.Adapter.viewAdapter;
@@ -46,6 +49,8 @@ public class MainActivity extends AppCompatActivity implements viewAdapter.movie
     FirstJson firstJson;
     String sort;
     FetchMoviesAsync moviesAsync = new FetchMoviesAsync();
+    private static final String BUNDLE_RECYCLER_LAYOUT = "recycler_layout";
+    private int positionIndex;
 
 
     @Override
@@ -74,6 +79,22 @@ public class MainActivity extends AppCompatActivity implements viewAdapter.movie
         setupSharedPreferences();
     }
 
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        int Index= ((LinearLayoutManager)recyclerView.getLayoutManager()).findFirstCompletelyVisibleItemPosition();
+        outState.putInt(BUNDLE_RECYCLER_LAYOUT , Index);
+    }
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        positionIndex = -1;
+        if (savedInstanceState != null) {
+            positionIndex = savedInstanceState.getInt(BUNDLE_RECYCLER_LAYOUT);
+        }
+    }
+
     public void getRetrofitmainPage(String moviesSort) {
 
         retrofit = new retrofit2.Retrofit.Builder()
@@ -89,7 +110,11 @@ public class MainActivity extends AppCompatActivity implements viewAdapter.movie
             public void onResponse(Call<FirstJson> call, Response<FirstJson> response) {
                 firstJson = response.body();
                 listed_data = new Listed_data(firstJson.getResults());
-                set_view(false);
+                    set_view(false);
+                    if (positionIndex >= 0){
+                        recyclerView.getLayoutManager().scrollToPosition(positionIndex);
+                        adapter.notifyDataSetChanged();
+                    }
             }
 
             @Override
@@ -194,15 +219,19 @@ public class MainActivity extends AppCompatActivity implements viewAdapter.movie
        switch(value){
             case "Top Rated" :
                 if (isNetworkConnected()) {
+                    positionIndex=-1;
                     getRetrofitmainPage("top_rated");
                 }else {
+                    positionIndex=-1;
                     noConnection();
                 }
                 break;
             case "Popular" :
                 if (isNetworkConnected()) {
+                    positionIndex=-1;
                     getRetrofitmainPage("popular");
                 }else {
+                    positionIndex=-1;
                     noConnection();
                 }
                 break;
