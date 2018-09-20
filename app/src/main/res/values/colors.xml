@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="colorPrimary">#735b45</color>
-    <color name="colorPrimaryDark">#f7f4f0</color>
+    <color name="colorPrimaryDark">#332920</color>
+    <color name="colorP">#f7f4f0</color>
     <color name="review">#ffaf45</color>
     <color name="colorAccent">#332920</color>
     <color name="ccccc">#43372b</color>
