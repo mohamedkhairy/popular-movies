@@ -11,13 +11,13 @@
         android:textSize="15sp"
         android:textStyle="bold"
         android:padding="5dp"
-        android:textColor="@color/colorPrimaryDark"
+        android:textColor="@color/colorP"
         android:id="@+id/review_author"/>
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="5dp"
         android:textSize="15sp"
-        android:textColor="@color/colorPrimaryDark"
+        android:textColor="@color/colorP"
         android:id="@+id/review_content" />
 </LinearLayout>
